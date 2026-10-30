@@ -1,0 +1,104 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Note that some adapters may set a maximum length for the String type by default, please ensure your strings are long
+// enough when changing adapters.
+// See https://www.prisma.io/docs/orm/reference/prisma-schema-reference#string for more information
+datasource db {
+  provider = "sqlite"
+  url      = "file:dev.sqlite"
+}
+
+model Session {
+  id            String    @id
+  shop          String
+  state         String
+  isOnline      Boolean   @default(false)
+  scope         String?
+  expires       DateTime?
+  accessToken   String
+  userId        BigInt?
+  firstName     String?
+  lastName      String?
+  email         String?
+  accountOwner  Boolean   @default(false)
+  locale        String?
+  collaborator  Boolean?  @default(false)
+  emailVerified Boolean?  @default(false)
+  refreshToken        String?
+  refreshTokenExpires DateTime?
+}
+
+// Per-shop defaults used by the reorder calculation.
+model ShopSettings {
+  shop                String   @id
+  salesWindowDays     Int      @default(60)
+  defaultLeadTimeDays Int      @default(14)
+  safetyDays          Int      @default(7)
+  coverDays           Int      @default(30)
+  currencyCode        String?
+  updatedAt           DateTime @updatedAt
+}
+
+// Suppliers are keyed by the product "vendor" field in Shopify.
+model Supplier {
+  id           Int     @id @default(autoincrement())
+  shop         String
+  name         String
+  email        String?
+  leadTimeDays Int?
+
+  @@unique([shop, name])
+}
+
+// Optional per-variant overrides set by the merchant.
+model VariantSetting {
+  shop      String
+  variantId String
+  minQty    Int?
+  maxQty    Int?
+  casePack  Int?
+  ignored   Boolean @default(false)
+
+  @@id([shop, variantId])
+}
+
+// One sync run: a variants bulk query followed by an orders bulk query.
+model SyncJob {
+  id              Int       @id @default(autoincrement())
+  shop            String
+  stage           String // variants | orders | done | failed
+  bulkOperationId String?
+  windowDays      Int
+  windowStart     DateTime
+  error           String?
+  lockedAt        DateTime?
+  startedAt       DateTime  @default(now())
+  finishedAt      DateTime?
+  stats           VariantStat[]
+
+  @@index([shop, stage])
+}
+
+// Snapshot of a variant's stock and sales, written by a sync job.
+model VariantStat {
+  jobId        Int
+  job          SyncJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  shop         String
+  variantId    String
+  productTitle String
+  variantTitle String
+  sku          String?
+  vendor       String
+  available    Int
+  incoming     Int
+  unitsSold    Int     @default(0)
+  unitCost     Float?
+
+  @@id([jobId, variantId])
+  @@index([shop])
+}
