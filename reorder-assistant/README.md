@@ -41,6 +41,8 @@ Defaults: 60-day window, 14-day lead time, 7 safety days, 30 cover days. All of 
 | `app/routes/app.settings.tsx` | Calculation defaults |
 | `app/routes/app.export.tsx` | CSV export |
 | `app/routes/webhooks.compliance.tsx` | Mandatory privacy webhooks |
+| `app/routes/privacy.tsx` | Public privacy policy page |
+| `app/lib/plans.ts` | Plan limits and plan selection link |
 
 Built on Shopify's official [React Router app template](https://github.com/Shopify/shopify-app-template-react-router) (Admin API `2026-10`, Polaris web components, Prisma + SQLite).
 
@@ -64,6 +66,12 @@ A failed sync never replaces the last good snapshot. There is no background work
 ## Local development
 
 Requirements: Node `>=22.12`, the [Shopify CLI](https://shopify.dev/docs/apps/tools/cli), a Shopify Partner account and a development store.
+
+Add this to `.env` in the app folder (paths are relative to `prisma/`):
+
+```shell
+DATABASE_URL="file:dev.sqlite"
+```
 
 ```shell
 npm ci
@@ -90,6 +98,38 @@ npm run build
 
 ## Deployment
 
-Any Node host works. The template's `Dockerfile` runs migrations on start. SQLite is fine for a single instance. Switch the Prisma datasource to Postgres if you run more than one instance. Set `NODE_ENV=production` and the `SHOPIFY_*` variables printed by `shopify app env show`. Shopify's [deployment guide](https://shopify.dev/docs/apps/launch/deployment) covers Fly.io, Render and Google Cloud Run.
+Any Node host works. The `Dockerfile` runs migrations on start.
+
+Environment variables:
+
+| Variable | Value |
+| --- | --- |
+| `NODE_ENV` | `production` |
+| `SHOPIFY_API_KEY`, `SHOPIFY_API_SECRET` | From `shopify app env show` |
+| `SHOPIFY_APP_URL` | Your public URL, e.g. `https://reorder-assistant.fly.dev` |
+| `SCOPES` | `read_products,read_inventory,read_orders` |
+| `DATABASE_URL` | SQLite on a **persistent volume**, e.g. `file:/data/prod.sqlite` |
+| `SUPPORT_EMAIL` | Shown on the `/privacy` page |
+| `SHOPIFY_APP_HANDLE` | Optional. The `handle` in `shopify.app.toml`, if it isn't `reorder-assistant`. Used for the plan selection link |
+
+Mount the volume somewhere other than `/app/prisma` (that folder holds the migrations). Without a volume, every redeploy wipes sessions and settings and merchants have to reinstall. SQLite is fine for a single instance. Switch the Prisma datasource to Postgres if you run more than one.
+
+Fly.io example:
+
+```shell
+fly launch --no-deploy
+fly volumes create data --size 1
+# in fly.toml:  [mounts] source = "data"  destination = "/data"
+fly secrets set NODE_ENV=production DATABASE_URL=file:/data/prod.sqlite \
+  SHOPIFY_API_KEY=... SHOPIFY_API_SECRET=... SHOPIFY_APP_URL=https://<app>.fly.dev \
+  SCOPES=read_products,read_inventory,read_orders SUPPORT_EMAIL=...
+fly deploy
+```
+
+Then set `application_url` and `[auth] redirect_urls` in `shopify.app.toml` to the production URL and run `shopify app deploy`. Shopify's [deployment guide](https://shopify.dev/docs/apps/launch/deployment) covers other hosts.
+
+## Plans
+
+Plans are set up in the Partner Dashboard (Shopify App Pricing). The app shows a notice when a store has more variants than Starter (500) or Growth (5,000) allows, with a link to Shopify's plan selection page. It does not block anyone, because for apps on Shopify App Pricing the active plan is only available from the Partner API. See `app/lib/plans.ts`.
 
 Template license: [LICENSE.md](./LICENSE.md) (MIT, Shopify).

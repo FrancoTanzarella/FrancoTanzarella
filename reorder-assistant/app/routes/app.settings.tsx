@@ -4,15 +4,27 @@ import type {
   HeadersFunction,
   LoaderFunctionArgs,
 } from "react-router";
-import { Form, useActionData, useLoaderData, useNavigation } from "react-router";
+import {
+  Form,
+  useActionData,
+  useLoaderData,
+  useNavigation,
+} from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { authenticate } from "../shopify.server";
 import { getSettings, updateSettings } from "../models/settings.server";
 import { MAX_SALES_WINDOW_DAYS } from "../lib/constants";
+import { DEFAULT_APP_HANDLE, pricingPlansUrl } from "../lib/plans";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
-  return getSettings(session.shop);
+  return {
+    settings: await getSettings(session.shop),
+    plansUrl: pricingPlansUrl(
+      session.shop,
+      process.env.SHOPIFY_APP_HANDLE || DEFAULT_APP_HANDLE,
+    ),
+  };
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
@@ -28,7 +40,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 };
 
 export default function SettingsPage() {
-  const settings = useLoaderData<typeof loader>();
+  const { settings, plansUrl } = useLoaderData<typeof loader>();
   const result = useActionData<typeof action>();
   const saving = useNavigation().state === "submitting";
 
@@ -88,6 +100,14 @@ export default function SettingsPage() {
         <s-paragraph>
           Changes apply immediately. A new sales window applies from the next
           sync.
+        </s-paragraph>
+      </s-section>
+      <s-section slot="aside" heading="Plan">
+        <s-paragraph>
+          Starter covers up to 500 variants, Growth up to 5,000.{" "}
+          <a href={plansUrl} target="_top">
+            View or change your plan
+          </a>
         </s-paragraph>
       </s-section>
     </s-page>

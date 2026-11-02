@@ -1,56 +1,56 @@
-import type { LoaderFunctionArgs } from "react-router";
-import { redirect, Form, useLoaderData } from "react-router";
-
-import { login } from "../../shopify.server";
+import type { LoaderFunctionArgs, MetaFunction } from "react-router";
+import { redirect } from "react-router";
 
 import styles from "./styles.module.css";
+
+export const meta: MetaFunction = () => [
+  { title: "Reorder Assistant: know what to reorder" },
+  {
+    name: "description",
+    content:
+      "Simple reorder suggestions and supplier purchase orders for small Shopify stores.",
+  },
+];
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const url = new URL(request.url);
 
+  // Requests from the Shopify admin carry ?shop=; send them into the app.
   if (url.searchParams.get("shop")) {
     throw redirect(`/app?${url.searchParams.toString()}`);
   }
 
-  return { showForm: Boolean(login) };
+  return null;
 };
 
-export default function App() {
-  const { showForm } = useLoaderData<typeof loader>();
-
+// Public page. Merchants install from the Shopify App Store, so there is no
+// shop-domain login form here.
+export default function Landing() {
   return (
     <div className={styles.index}>
       <div className={styles.content}>
-        <h1 className={styles.heading}>A short heading about [your app]</h1>
+        <h1 className={styles.heading}>Reorder Assistant</h1>
         <p className={styles.text}>
-          A tagline about [your app] that describes your value proposition.
+          Know what to reorder in 2 minutes a week. Simple reorder suggestions
+          and supplier purchase orders for small Shopify stores.
         </p>
-        {showForm && (
-          <Form className={styles.form} method="post" action="/auth/login">
-            <label className={styles.label}>
-              <span>Shop domain</span>
-              <input className={styles.input} type="text" name="shop" />
-              <span>e.g: my-shop-domain.myshopify.com</span>
-            </label>
-            <button className={styles.button} type="submit">
-              Log in
-            </button>
-          </Form>
-        )}
         <ul className={styles.list}>
           <li>
-            <strong>Product feature</strong>. Some detail about your feature and
-            its benefit to your customer.
+            <strong>Reorder suggestions</strong>. See which products will run
+            out, based on your recent sales, stock on hand and stock on the way.
           </li>
           <li>
-            <strong>Product feature</strong>. Some detail about your feature and
-            its benefit to your customer.
+            <strong>Grouped by supplier</strong>. Set a lead time per supplier
+            and get one list per supplier with units and cost totals.
           </li>
           <li>
-            <strong>Product feature</strong>. Some detail about your feature and
-            its benefit to your customer.
+            <strong>Purchase orders in one click</strong>. Download a CSV
+            purchase order per supplier, ready to send.
           </li>
         </ul>
+        <p>
+          <a href="/privacy">Privacy policy</a>
+        </p>
       </div>
     </div>
   );

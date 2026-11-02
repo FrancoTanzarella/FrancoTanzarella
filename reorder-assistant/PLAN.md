@@ -37,14 +37,15 @@
 
 ## Before submitting to the App Store
 
-- [ ] Create the app in the Partner Dashboard, run `shopify app config link`, and set `client_id`
-- [ ] Test on a development store with real-looking data (multiple locations, variants, cancelled orders)
-- [ ] **Verify the CSV download works inside the Shopify admin iframe.** It uses an authenticated `fetch` + Blob download. If the admin blocks downloads, fall back to opening the export in a new window with a short-lived signed URL
+- [x] Create the app in the Partner Dashboard, run `shopify app config link`, and set `client_id`
+- [x] Test on a development store with real-looking data (multiple locations, variants, cancelled orders)
+- [x] **Verify the CSV download works inside the Shopify admin iframe.** It uses an authenticated `fetch` + Blob download. If the admin blocks downloads, fall back to opening the export in a new window with a short-lived signed URL
 - [ ] Request **Level 1 protected customer data** access (orders) and fill in the data protection details
 - [ ] Set up pricing plans in the Partner Dashboard (App Pricing)
-- [ ] Gate variant-count limits by plan (read the active subscription)
-- [ ] Production hosting (Fly.io / Render, about $5–20/month) with a persistent volume or Postgres
-- [ ] App listing: screenshots, a 30-second demo video, a privacy policy page and a support email
+- [x] Variant-count notice per plan, linking to the plan selection page. Hard enforcement needs the Partner API `activeSubscription` query (a Partner API token): add it after launch if merchants ignore the notice
+- [ ] Production hosting (Fly.io / Render, about $5–20/month) with a persistent volume or Postgres. `DATABASE_URL` is now read from the environment
+- [x] Privacy policy page (`/privacy`) and public landing page
+- [ ] App listing: screenshots, a 30-second demo video and a support email (copy in [LISTING.md](./LISTING.md))
 - [ ] Check the current "Built for Shopify" requirements. Performance and design rules affect ranking
 
 ## Roadmap (after the first paying users)

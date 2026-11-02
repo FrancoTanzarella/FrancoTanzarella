@@ -14,6 +14,12 @@ import {
   startSync,
 } from "../models/sync.server";
 import { downloadCsv, formatMoney, numericId } from "../lib/format";
+import {
+  DEFAULT_APP_HANDLE,
+  PLANS,
+  planNotice,
+  pricingPlansUrl,
+} from "../lib/plans";
 
 const POLL_INTERVAL_MS = 3000;
 
@@ -46,12 +52,19 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     suppliers: report.suppliers
       .map((group) => ({
         ...group,
-        rows: showAll ? group.rows : group.rows.filter((r) => r.suggestedQty > 0),
+        rows: showAll
+          ? group.rows
+          : group.rows.filter((r) => r.suggestedQty > 0),
       }))
       .filter((group) => group.rows.length > 0),
     reorderCount: report.rows.filter((r) => r.suggestedQty > 0).length,
     outOfStockCount: report.rows.filter((r) => r.status === "out_of_stock")
       .length,
+    planNotice: planNotice(report.rows.length),
+    plansUrl: pricingPlansUrl(
+      shop,
+      process.env.SHOPIFY_APP_HANDLE || DEFAULT_APP_HANDLE,
+    ),
   };
 };
 
@@ -106,12 +119,34 @@ export default function ReorderPage() {
         </s-banner>
       )}
 
+      {data.planNotice.kind === "needs_growth" && (
+        <s-banner tone="warning" heading="Your catalog is larger than Starter">
+          You have {data.planNotice.variantCount} tracked variants. Starter
+          covers up to {PLANS[0].maxVariants} and Growth up to{" "}
+          {PLANS[1].maxVariants}. If you are on Starter, please{" "}
+          <a href={data.plansUrl} target="_top">
+            switch to Growth
+          </a>
+          .
+        </s-banner>
+      )}
+      {data.planNotice.kind === "over_all_plans" && (
+        <s-banner
+          tone="warning"
+          heading="Your catalog is larger than our plans"
+        >
+          You have {data.planNotice.variantCount} tracked variants. Growth
+          covers up to {PLANS[1].maxVariants}. Please contact support so we can
+          make sure the app works well for a store your size.
+        </s-banner>
+      )}
+
       {!data.lastSyncedAt ? (
         <s-section heading="Welcome">
           <s-paragraph>
-            Reorder Assistant looks at your stock and the last{" "}
-            {data.windowDays} days of sales, then tells you what to reorder
-            from each supplier and how much.
+            Reorder Assistant looks at your stock and the last {data.windowDays}{" "}
+            days of sales, then tells you what to reorder from each supplier and
+            how much.
           </s-paragraph>
           <s-paragraph>
             Run your first sync to get suggestions. Set supplier lead times on
